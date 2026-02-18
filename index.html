@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiber Mapping Database | Edit-Only Secure Mode</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .active-site { background-color: #0ea5e9 !important; color: white !important; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
+        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body class="bg-[#0b0e14] text-slate-300 flex h-screen overflow-hidden font-sans">
+
+    <aside class="w-80 bg-[#151b23] border-r border-slate-800 flex flex-col shadow-2xl">
+        <div class="p-6 border-b border-slate-800">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-blue-600 rounded-lg"><i class="fas fa-network-wired text-white"></i></div>
+                <h2 class="text-lg font-bold text-white tracking-tight">OLT MANAGER</h2>
+            </div>
+            <div class="flex gap-2">
+                <span class="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full border border-emerald-500/20">Active</span>
+                <span class="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full border border-amber-500/20">Edit Only</span>
+            </div>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto p-4 space-y-1 sidebar-scroll" id="sidebarNav">
+            <button onclick="filterOLT('All', this)" class="active-site w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center mb-4">
+                <i class="fas fa-th-large mr-3"></i> All Deployments
+            </button>
+            <p class="text-[10px] font-bold text-slate-500 px-4 mb-2 uppercase tracking-widest">Network Nodes</p>
+            <div id="oltList"></div>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0">
+        <header class="h-20 bg-[#151b23]/50 border-b border-slate-800 flex items-center justify-between px-10">
+            <div>
+                <h1 id="viewTitle" class="text-xl font-bold text-white">Network Fiber Mapping Database</h1>
+                <p class="text-xs text-slate-500 mt-0.5">Secure Log Management System</p>
+            </div>
+            <div id="liveClock" class="text-xs font-mono text-blue-400 bg-blue-900/20 px-4 py-2 rounded-lg border border-blue-800/30"></div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 bg-[#0b0e14]">
+            
+            <section class="mb-10 glass-card rounded-2xl p-8 shadow-2xl">
+                <h3 class="text-sm font-bold text-blue-400 uppercase tracking-widest mb-6 flex items-center">
+                    <span class="w-1 h-4 bg-blue-500 rounded-full mr-3"></span>
+                    Current Node: <span id="targetOlt" class="ml-2 text-white">Select a Site</span>
+                </h3>
+                
+                <form id="oltForm" class="grid grid-cols-1 md:grid-cols-5 gap-6">
+                    <input type="hidden" id="editDocId" value="">
+                    <div class="space-y-2">
+                        <label class="text-[11px] font-bold text-slate-500 uppercase">Board</label>
+                        <input type="text" id="board" placeholder="e.g., 5" class="w-full bg-[#1c232d] border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none transition-all" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[11px] font-bold text-slate-500 uppercase">Port</label>
+                        <input type="text" id="port" placeholder="e.g., 34" class="w-full bg-[#1c232d] border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none transition-all" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[11px] font-bold text-slate-500 uppercase">Core</label>
+                        <input type="text" id="core" placeholder="e.g., 45" class="w-full bg-[#1c232d] border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none transition-all" required>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[11px] font-bold text-slate-500 uppercase">Notes</label>
+                        <input type="text" id="notes" placeholder="Location details" class="w-full bg-[#1c232d] border border-slate-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none transition-all">
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <button type="submit" id="submitBtn" class="flex-1 bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 uppercase">
+                            <i class="fas fa-save"></i> <span id="btnText">Upload Details</span>
+                        </button>
+                        <button type="button" id="cancelEdit" class="hidden bg-slate-700 hover:bg-slate-600 text-white p-4 rounded-xl transition-all"><i class="fas fa-times"></i></button>
+                    </div>
+                </form>
+            </section>
+
+            <div class="bg-[#151b23] rounded-2xl border border-slate-800 overflow-hidden shadow-sm">
+                <table class="w-full text-left">
+                    <thead class="bg-[#1c232d] text-[11px] text-slate-500 uppercase font-bold tracking-wider">
+                        <tr>
+                            <th class="px-8 py-5">OLT Site</th>
+                            <th class="px-8 py-5">Board</th>
+                            <th class="px-8 py-5">Port</th>
+                            <th class="px-8 py-5">Core</th>
+                            <th class="px-8 py-5">Location / Notes</th>
+                            <th class="px-8 py-5">Time of Upload/Edit</th>
+                            <th class="px-8 py-5 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable" class="divide-y divide-slate-800 text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const colRef = collection(db, "olt_infrastructure");
+
+        const olts = [
+            "Kisugu", "Kitintale", "Kiruddu", "Lubowa", "Dundu", 
+            "Namirembe", "Kiwatule", "Kimbejja1", "Kalinabiri", "Nalukolongo", 
+            "Imperial", "Bmk Wampewo", "Raxio", "Magwa", "Hoima", "Mbarara", "Kimbejja2"
+        ];
+
+        let activeSite = 'All';
+
+        const oltListContainer = document.getElementById('oltList');
+        olts.forEach((site, index) => {
+            const btn = document.createElement('button');
+            btn.className = "w-full text-left px-4 py-2.5 rounded-xl text-sm hover:bg-slate-800 transition-all flex items-center text-slate-400 mb-1";
+            btn.innerHTML = `<span class="w-6 text-[10px] text-slate-600 font-mono">${index + 3}</span> <i class="fas fa-satellite-dish mr-3 text-[10px] opacity-40"></i> ${site}`;
+            btn.onclick = () => filterOLT(site, btn);
+            oltListContainer.appendChild(btn);
+        });
+
+        window.filterOLT = (site, btn) => {
+            activeSite = site;
+            document.querySelectorAll('#sidebarNav button').forEach(b => b.classList.remove('active-site', 'text-white'));
+            btn.classList.add('active-site', 'text-white');
+            document.getElementById('targetOlt').innerText = site === 'All' ? 'Select an OLT' : site;
+            loadData();
+        };
+
+        document.getElementById('oltForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const editId = document.getElementById('editDocId').value;
+            const data = { site: activeSite, board: document.getElementById('board').value, port: document.getElementById('port').value, core: document.getElementById('core').value, notes: document.getElementById('notes').value, lastModified: serverTimestamp() };
+
+            if (editId) { await updateDoc(doc(db, "olt_infrastructure", editId), data); }
+            else { await addDoc(colRef, data); }
+            resetForm();
+        });
+
+        function loadData() {
+            let q = query(colRef, orderBy("lastModified", "desc"));
+            if (activeSite !== 'All') q = query(colRef, where("site", "==", activeSite), orderBy("lastModified", "desc"));
+
+            onSnapshot(q, (snapshot) => {
+                let html = '';
+                snapshot.docs.forEach(docSnap => {
+                    const d = docSnap.data();
+                    let formattedTime = "Syncing...";
+                    if (d.lastModified) {
+                        const dateObj = d.lastModified.toDate();
+                        formattedTime = `${dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })} | ${dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+                    }
+
+                    html += `
+                        <tr class="hover:bg-slate-800/40 transition-all border-b border-slate-800/50">
+                            <td class="px-8 py-5 font-bold text-blue-400">${d.site}</td>
+                            <td class="px-8 py-5 font-mono text-slate-300">${d.board}</td>
+                            <td class="px-8 py-5 font-mono text-slate-300">${d.port}</td>
+                            <td class="px-8 py-5 font-bold text-emerald-400">${d.core}</td>
+                            <td class="px-8 py-5 text-slate-400 text-xs italic">${d.notes || '—'}</td>
+                            <td class="px-8 py-5 text-[11px] text-slate-500 font-mono">${formattedTime}</td>
+                            <td class="px-8 py-5 text-right">
+                                <button onclick="startEdit('${docSnap.id}', '${d.board}', '${d.port}', '${d.core}', '${d.notes}')" class="text-slate-500 hover:text-blue-400 transition-colors"><i class="fas fa-edit"></i> Edit</button>
+                            </td>
+                        </tr>`;
+                });
+                document.getElementById('dataTable').innerHTML = html || '<tr><td colspan="7" class="p-20 text-center text-slate-700 italic">No records found</td></tr>';
+            });
+        }
+
+        window.startEdit = (id, b, p, c, n) => {
+            document.getElementById('editDocId').value = id;
+            document.getElementById('board').value = b;
+            document.getElementById('port').value = p;
+            document.getElementById('core').value = c;
+            document.getElementById('notes').value = n;
+            document.getElementById('btnText').innerText = "Update Record";
+            document.getElementById('submitBtn').classList.replace('bg-[#0284c7]', 'bg-orange-600');
+            document.getElementById('cancelEdit').classList.remove('hidden');
+        };
+
+        window.resetForm = () => {
+            document.getElementById('oltForm').reset();
+            document.getElementById('editDocId').value = "";
+            document.getElementById('btnText').innerText = "Upload Details";
+            document.getElementById('submitBtn').classList.replace('bg-orange-600', 'bg-[#0284c7]');
+            document.getElementById('cancelEdit').classList.add('hidden');
+        };
+
+        document.getElementById('cancelEdit').onclick = resetForm;
+        setInterval(() => { document.getElementById('liveClock').innerText = new Date().toLocaleString(); }, 1000);
+        loadData();
+    </script>
+</body>
+</html>
